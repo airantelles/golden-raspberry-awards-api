@@ -15,10 +15,15 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python"
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.analysis.extraPaths": [
+          "${containerWorkspaceFolder}/src"
+        ]
       },
       "extensions": [
         "ms-python.python",
+        "ms-python.debugpy",
         "ms-python.vscode-pylance",
         "charliermarsh.ruff"
       ]

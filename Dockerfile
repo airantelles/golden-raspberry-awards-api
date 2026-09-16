@@ -58,11 +58,15 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /uvx /bin/
 COPY --from=node-development /usr/local/bin/node /usr/local/bin/
 COPY --from=node-development /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-RUN ln --symbolic ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends make \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln --symbolic ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln --symbolic ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
     && uv --version | grep --fixed-strings '0.12.15' \
     && node --version | grep --fixed-strings 'v24.21.0' \
-    && npx --version
+    && npx --version \
+    && make --version
 
 RUN groupadd --gid 1000 developer \
     && useradd --uid 1000 --gid developer --create-home --shell /bin/bash developer

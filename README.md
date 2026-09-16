@@ -148,6 +148,21 @@ uv run ruff format --check .
 uv run mypy .
 ```
 
+## Makefile
+
+The `uv` commands remain the canonical interface for running the project. The
+Makefile only provides convenient development shortcuts; it does not replace
+`uv`, `pyproject.toml`, or `uv.lock`.
+
+```bash
+make help
+make dev
+make test
+make check
+make docker-build
+make docker-run
+```
+
 ## Using Docker
 
 Build the production image and start the API with the dataset already included
@@ -182,6 +197,12 @@ Open the repository in VS Code with the Dev Containers extension and select
 uv, the development dependencies, Ruff, mypy, pytest, and Node.js used by the
 development tools. Dependencies are installed automatically when the container
 is created.
+
+After reopening, open **Run and Debug** and select **API: Debug** to start the
+API on port 8000 with breakpoints enabled in `src/app`. The configuration uses
+the project `.venv`, loads `docs/Movielist.csv` by default, and preserves a
+previously configured `MOVIELIST_CSV_PATH`. Select **Tests: Debug** to run the
+integration tests with breakpoints.
 
 ## Technical decisions
 
