@@ -42,3 +42,12 @@ Context7 is configured only in `.codex/config.toml`, using the fixed package ver
 
 - Haverá somente testes de integração, exercitando a rota pública com `TestClient` dentro de seu context manager para executar o lifespan real. Cada teste passará um CSV temporário à factory, obtendo banco, schema e carga independentes.
 - Os cenários cobrirão o CSV fornecido (mínimo Joel Silver: 1990–1991, 1; máximo Matthew Vaughn: 2002–2015, 13), mais de duas vitórias, múltiplos vencedores/intervalo zero, empates de mínimo e máximo, ausência de pares e troca de CSV. Asserções compararão o JSON completo e já ordenado.
+
+## ADR-003 — Conjunção ambígua em nomes de produtores
+
+- Status: accepted
+- Date: 2026-09-16
+
+`and` só é um separador quando aparece como palavra isolada por whitespace. Assim,
+o valor observado `Brian Robbinsand Sharla Sumpter Bridgett` é preservado como um
+único nome, sem inferir ou corrigir uma separação ausente no CSV.

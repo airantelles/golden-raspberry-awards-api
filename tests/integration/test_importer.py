@@ -81,6 +81,52 @@ def test_explicit_csv_paths_import_isolated_datasets(tmp_path: Path) -> None:
                 assert session.scalars(select(Producer.name)).all() == ["Carol"]
 
 
+def test_producer_lists_create_clean_shared_associations(tmp_path: Path) -> None:
+    """Producer separators and incidental spacing are handled during app startup."""
+    csv_path = _write_csv(
+        tmp_path / "producers.csv",
+        "year;title;studios;producers;winner\n"
+        "2001;First Film;Studio; Alice  Example, Alice Example and Bob Example ;yes\n"
+        "2002;Second Film;Studio;Alice Example, Carol Example and Dave Example;\n"
+        "2003;Third Film;Studio;Alice Example, Bob Example, and Eve Example;yes\n"
+        "2004;Fourth Film;Studio;Alice Example;\n",
+    )
+    application = create_app(csv_path)
+
+    with TestClient(application):
+        database = application.state.database
+        with database.session_factory() as session:
+            movies = session.scalars(select(Movie).order_by(Movie.year)).all()
+            producers = session.scalars(select(Producer).order_by(Producer.name)).all()
+
+            producer_names_by_movie = [
+                sorted(producer.name for producer in movie.producers)
+                for movie in movies
+            ]
+            assert producer_names_by_movie == [
+                ["Alice Example", "Bob Example"],
+                ["Alice Example", "Carol Example", "Dave Example"],
+                ["Alice Example", "Bob Example", "Eve Example"],
+                ["Alice Example"],
+            ]
+            assert [producer.name for producer in producers] == [
+                "Alice Example",
+                "Bob Example",
+                "Carol Example",
+                "Dave Example",
+                "Eve Example",
+            ]
+            alice = next(
+                producer for producer in producers if producer.name == "Alice Example"
+            )
+            assert sorted(movie.title for movie in alice.movies) == [
+                "First Film",
+                "Fourth Film",
+                "Second Film",
+                "Third Film",
+            ]
+
+
 def test_invalid_csv_rolls_back_every_row_in_the_transaction(tmp_path: Path) -> None:
     """A malformed later row cannot leave earlier rows persisted."""
     invalid_csv = _write_csv(

@@ -1,17 +1,15 @@
 """CSV validation and persistence for the movie awards dataset."""
 
 import csv
-import re
-from collections.abc import Iterable
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from app.database import Database
 from app.models import Movie, Producer
+from app.producers import parse_producers
 
 EXPECTED_COLUMNS = ("year", "title", "studios", "producers", "winner")
-_PRODUCER_SEPARATOR = re.compile(r"\s*,\s*(?:and\s+)?|\s+and\s+")
 
 
 class CsvImportError(ValueError):
@@ -93,9 +91,14 @@ def _import_row(
             values["winner"], csv_path=csv_path, line_number=line_number
         ),
     )
-    for producer_name in _parse_producers(
-        values["producers"], csv_path=csv_path, line_number=line_number
-    ):
+    try:
+        producer_names = parse_producers(values["producers"])
+    except ValueError as error:
+        raise CsvImportError(
+            f"Invalid CSV row {line_number} in {csv_path}: invalid producers list"
+        ) from error
+
+    for producer_name in producer_names:
         producer = producers_by_name.get(producer_name)
         if producer is None:
             producer = Producer(name=producer_name)
@@ -140,12 +143,3 @@ def _parse_winner(value: str, *, csv_path: Path, line_number: int) -> bool:
     raise CsvImportError(
         f"Invalid CSV row {line_number} in {csv_path}: winner must be 'yes' or empty"
     )
-
-
-def _parse_producers(value: str, *, csv_path: Path, line_number: int) -> Iterable[str]:
-    names = [" ".join(name.split()) for name in _PRODUCER_SEPARATOR.split(value)]
-    if not all(names):
-        raise CsvImportError(
-            f"Invalid CSV row {line_number} in {csv_path}: invalid producers list"
-        )
-    return dict.fromkeys(names)
