@@ -1,13 +1,17 @@
-# AI development record
+# Registro do desenvolvimento assistido por IA
 
-Codex was used for analysis, implementation, and review. Context7 MCP was
-used to consult current documentation, and the `architecture-review`,
-`integration-test-design`, and `python-review` skills were used during the
-work.
+Codex foi utilizado para análise, implementação e revisão. O Context7 MCP foi
+usado para consultar documentação atualizada, e as skills `architecture-review`,
+`integration-test-design` e `python-review` foram utilizadas durante o trabalho.
 
-The main prompts are kept in [.ai/prompts](prompts). They record the principal
-development interactions and are not necessarily a literal transcript of every
-message exchanged.
+O Codex foi executado de forma autônoma (informalmente, "YOLO mode") em um
+sandbox baseado em Docker. Esse isolamento foi utilizado como uma camada de
+proteção e contenção do ambiente de execução, limitando o escopo de acesso do
+agente ao projeto isolado e reduzindo o impacto potencial no sistema host.
 
-[.ai/decisions.md](decisions.md) records the technical decisions that were
-relevant during development.
+Os principais prompts estão em [prompts/](prompts/). Eles registram as
+interações centrais do desenvolvimento e não constituem necessariamente uma
+transcrição literal de todas as mensagens trocadas.
+
+[.ai/decisions.md](decisions.md) registra as decisões técnicas relevantes
+tomadas durante o desenvolvimento.
