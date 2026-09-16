@@ -2,9 +2,59 @@
 
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 from app.database import Database
 from app.importer import import_movies
 from app.intervals import ProducerInterval, find_producer_interval_extremes
+from app.main import create_app
+
+
+def test_intervals_endpoint_returns_the_original_dataset_contract() -> None:
+    """The public resource exposes the requested aliases and CSV-derived values."""
+    with TestClient(create_app()) as client:
+        response = client.get("/producers/intervals")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {
+        "min": [
+            {
+                "producer": "Joel Silver",
+                "interval": 1,
+                "previousWin": 1990,
+                "followingWin": 1991,
+            }
+        ],
+        "max": [
+            {
+                "producer": "Matthew Vaughn",
+                "interval": 13,
+                "previousWin": 2002,
+                "followingWin": 2015,
+            }
+        ],
+    }
+
+
+def test_intervals_endpoint_returns_empty_lists_without_valid_intervals(
+    tmp_path: Path,
+) -> None:
+    """The public resource retains its contract when no producer wins twice."""
+    csv_path = tmp_path / "movies.csv"
+    csv_path.write_text(
+        "year;title;studios;producers;winner\n"
+        "2000;Alice Winner;Studio;Alice;yes\n"
+        "2001;Bob Winner;Studio;Bob;yes\n",
+        encoding="utf-8",
+    )
+
+    with TestClient(create_app(csv_path)) as client:
+        response = client.get("/producers/intervals")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"min": [], "max": []}
 
 
 def test_consecutive_wins_define_all_tied_interval_extremes(tmp_path: Path) -> None:

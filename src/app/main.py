@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
+from app.api import register_interval_routes
 from app.database import Database
 from app.importer import import_movies
 
@@ -34,6 +35,7 @@ def create_app(csv_path: Path | None = None) -> FastAPI:
     )
     application.state.database = Database()
     application.state.csv_path = _resolve_csv_path(csv_path)
+    register_interval_routes(application)
 
     @application.get("/health")
     def health() -> dict[str, str]:
