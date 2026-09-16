@@ -15,6 +15,8 @@
 - Não use `async` apenas porque FastAPI o suporta.
 - O desafio requer somente testes de integração; não crie testes unitários.
 - A aplicação deve continuar funcionando quando o CSV de entrada for substituído.
+- `docs/Movielist.csv` faz parte da entrega e deve permanecer versionado.
+- O documento original da avaliação não faz parte da entrega e não deve ser adicionado ao repositório.
 - Nunca versione segredos.
 - Após mudanças relevantes, execute testes, lint, verificação de formatação e type checking.
 - Antes de alterar uma decisão arquitetural registrada, revise `.ai/decisions.md`.
