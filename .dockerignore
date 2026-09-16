@@ -1,0 +1,33 @@
+# Version-control and local agent configuration
+.git/
+.codex/
+.ai/
+AGENTS.md
+
+# Local environments, caches, and generated files
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Only the CSV is needed from the documentation directory at image build time.
+docs/*
+!docs/Movielist.csv
+
+# Test and editor files are not part of the production build context.
+tests/
+.vscode/
+.idea/
