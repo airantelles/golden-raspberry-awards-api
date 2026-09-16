@@ -1,0 +1,3 @@
+interface:
+  display_name: "Integration Test Design"
+  short_description: "Design high-value CSV-backed API integration tests"
