@@ -5,7 +5,7 @@
       "name": "API: Debug",
       "type": "debugpy",
       "request": "launch",
-      "python": "${containerWorkspaceFolder}/.venv/bin/python",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "module": "uvicorn",
       "args": [
         "--app-dir",
@@ -16,7 +16,7 @@
         "--port",
         "8000"
       ],
-      "cwd": "${containerWorkspaceFolder}",
+      "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -24,11 +24,11 @@
       "name": "Tests: Debug",
       "type": "debugpy",
       "request": "launch",
-      "python": "${containerWorkspaceFolder}/.venv/bin/python",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "module": "pytest",
-      "cwd": "${containerWorkspaceFolder}",
+      "cwd": "${workspaceFolder}",
       "env": {
-        "PYTHONPATH": "${containerWorkspaceFolder}/src"
+        "PYTHONPATH": "${workspaceFolder}/src"
       },
       "console": "integratedTerminal",
       "justMyCode": true
