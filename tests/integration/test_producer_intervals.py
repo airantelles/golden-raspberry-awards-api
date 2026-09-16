@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.importer import CsvImportError
 from app.main import create_app
 
 
@@ -21,8 +22,11 @@ def write_csv(tmp_path: Path) -> Callable[[str], Path]:
     return _write_csv
 
 
-def test_intervals_endpoint_uses_the_versioned_default_dataset() -> None:
+def test_intervals_endpoint_uses_the_versioned_default_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The default CSV is imported through startup and exposes its contract."""
+    monkeypatch.delenv("MOVIELIST_CSV_PATH", raising=False)
     with TestClient(create_app()) as client:
         response = client.get("/producers/intervals")
 
@@ -158,3 +162,130 @@ def test_intervals_endpoint_returns_empty_lists_when_no_producer_repeats(
 
     assert response.status_code == 200
     assert response.json() == {"min": [], "max": []}
+
+
+def test_normalized_producers_and_repeated_zero_intervals(
+    write_csv: Callable[[str], Path],
+) -> None:
+    """Preserve literal names, deduplicate producers and sort tied zero pairs."""
+    producers = (
+        "zeta, Alpha, alpha, R & B, Brian Robbinsand Sharla Sumpter Bridgett, "
+        "  Mary   Jane, and Alpha"
+    )
+    csv_path = write_csv(
+        "\ufeffyear;title;studios;producers;winner\n"
+        f"2000;Third;Studio;{producers}; YES \n"
+        f"2000;First;Studio;{producers};yes\n"
+        f"2000;Second;Studio;{producers};yes\n"
+        "1999;Loser;Studio;Alpha;\n"
+    )
+    expected = [
+        {
+            "producer": producer,
+            "interval": 0,
+            "previousWin": 2000,
+            "followingWin": 2000,
+        }
+        for producer in (
+            "Alpha",
+            "alpha",
+            "Brian Robbinsand Sharla Sumpter Bridgett",
+            "Mary Jane",
+            "R & B",
+            "zeta",
+        )
+    ]
+    with TestClient(create_app(csv_path)) as client:
+        response = client.get("/producers/intervals")
+
+    assert response.status_code == 200
+    assert response.json() == {"min": expected, "max": expected}
+
+
+def test_configured_csv_explicit_precedence_and_application_isolation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two live applications keep different datasets and configuration paths."""
+    configured = tmp_path / "configured.csv"
+    configured.write_text(
+        "year;title;studios;producers;winner\n"
+        "2003;Later;Studio;Ada;yes\n"
+        "2000;Earlier;Studio;Ada;yes\n",
+        encoding="utf-8",
+    )
+    explicit = tmp_path / "empty.csv"
+    explicit.write_text("year;title;studios;producers;winner\n", encoding="utf-8")
+    monkeypatch.setenv("MOVIELIST_CSV_PATH", str(configured))
+    expected = {
+        "producer": "Ada",
+        "interval": 3,
+        "previousWin": 2000,
+        "followingWin": 2003,
+    }
+
+    with TestClient(create_app()) as configured_client:
+        with TestClient(create_app(explicit)) as explicit_client:
+            response = explicit_client.get("/producers/intervals")
+            assert response.status_code == 200
+            assert response.json() == {"min": [], "max": []}
+            response = configured_client.get("/producers/intervals")
+            assert response.status_code == 200
+            assert response.json() == {"min": [expected], "max": [expected]}
+        assert configured_client.get("/producers/intervals").json() == {
+            "min": [expected],
+            "max": [expected],
+        }
+
+
+@pytest.mark.parametrize(
+    ("invalid_contents", "message"),
+    [
+        (b"", "CSV file is empty"),
+        (b"year;title;studios;producers\n", "missing columns: winner"),
+        (
+            b"year;title;studios;producers;winner;winner\n",
+            "duplicated columns: winner",
+        ),
+        (
+            b"year;title;studios;producers;winner\n2000;Film;Studio;Ada;\xff\n",
+            "not valid UTF-8",
+        ),
+        *[
+            (
+                b"year;title;studios;producers;winner\n"
+                b"2000;Valid;Studio;Ada;yes\n" + invalid_row,
+                error,
+            )
+            for invalid_row, error in (
+                (b'2001;Film;Studio;Ada;"yes', "Invalid CSV syntax"),
+                (b'2001;Film;Studio;Ada;"yes"x\n', "Invalid CSV syntax"),
+                (b"2001;Film;Studio;Ada;yes;extra\n", "too many columns"),
+                (b"2001;Film;Studio;Ada\n", "missing value for winner"),
+                (b"year;Film;Studio;Ada;yes\n", "year must be an integer"),
+                (b"2001;Film;Studio;Ada;no\n", "winner must be 'yes' or empty"),
+                (b"2001;Film;Studio;Ada,;yes\n", "invalid producers list"),
+            )
+        ],
+    ],
+)
+def test_invalid_csv_aborts_startup_and_allows_clean_restart(
+    tmp_path: Path, invalid_contents: bytes, message: str
+) -> None:
+    """Fail through real startup, then reuse the app with a repaired dataset."""
+    csv_path = tmp_path / "movies.csv"
+    csv_path.write_bytes(invalid_contents)
+    application = create_app(csv_path)
+
+    with pytest.raises(CsvImportError, match=message) as caught:
+        with TestClient(application):
+            pytest.fail("Invalid CSV must prevent startup")
+    assert str(csv_path) in str(caught.value)
+
+    csv_path.write_text(
+        "year;title;studios;producers;winner\n2002;Replacement;Studio;Ada;yes\n",
+        encoding="utf-8",
+    )
+    with TestClient(application) as client:
+        response = client.get("/producers/intervals")
+        assert response.status_code == 200
+        assert response.json() == {"min": [], "max": []}

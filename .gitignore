@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Original evaluation document is not part of the delivery.
+/docs/avaliacao-back-end.pdf
+
 # Python environments and generated artifacts
 .venv/
 __pycache__/

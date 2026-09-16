@@ -64,6 +64,11 @@ RUN ln --symbolic ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && node --version | grep --fixed-strings 'v24.21.0' \
     && npx --version
 
+RUN groupadd --gid 1000 developer \
+    && useradd --uid 1000 --gid developer --create-home --shell /bin/bash developer
+
+USER developer
+
 
 FROM base AS dependencies
 

@@ -51,3 +51,17 @@ Context7 is configured only in `.codex/config.toml`, using the fixed package ver
 `and` só é um separador quando aparece como palavra isolada por whitespace. Assim,
 o valor observado `Brian Robbinsand Sharla Sumpter Bridgett` é preservado como um
 único nome, sem inferir ou corrigir uma separação ausente no CSV.
+
+## ADR-004 — Rejeição de CSV malformado e usuário de desenvolvimento
+
+- Status: accepted
+- Date: 2026-09-16
+
+- O leitor CSV usará `strict=True` para rejeitar sintaxe inválida, como aspas
+  não fechadas, em vez de importar silenciosamente valores recuperados pelo
+  modo permissivo. Erros de sintaxe e encoding serão apresentados como
+  `CsvImportError`, mantendo a causa e o caminho; erros de sintaxe também
+  informarão a posição aproximada do leitor. A carga continua atômica.
+- O estágio Docker de desenvolvimento e o Dev Container usarão o usuário
+  `developer`, não-root, evitando arquivos criados como root no workspace.
+  O usuário de produção continua sendo `app`.

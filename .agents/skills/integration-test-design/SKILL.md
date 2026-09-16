@@ -24,7 +24,8 @@ unambiguous:
 - one producer with three or more wins, proving intervals use adjacent wins
   only, never arbitrary historical pairs;
 - multiple producers on one winning film, including names joined by `and`,
-  `&`, commas, and their practical combinations used by the importer;
+  commas, and their practical combinations used by the importer; preserve `&`
+  within names, since it is not a separator in the recorded CSV convention;
 - multiple winning films in a year, including two wins by the same producer in
   that year, so zero-length adjacent intervals are retained;
 - non-winning rows between wins, which must not affect intervals;

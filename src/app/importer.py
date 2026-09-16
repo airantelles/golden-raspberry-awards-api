@@ -24,7 +24,7 @@ def import_movies(database: Database, csv_path: Path) -> None:
 
     try:
         with resolved_path.open("r", encoding="utf-8-sig", newline="") as csv_file:
-            reader = csv.DictReader(csv_file, delimiter=";")
+            reader = csv.DictReader(csv_file, delimiter=";", strict=True)
             _validate_header(reader, resolved_path)
 
             with database.session_factory.begin() as session:
@@ -37,6 +37,12 @@ def import_movies(database: Database, csv_path: Path) -> None:
                         line_number=reader.line_num,
                         producers_by_name=producers_by_name,
                     )
+    except csv.Error as error:
+        raise CsvImportError(
+            f"Invalid CSV syntax in {resolved_path} near row {reader.line_num}: {error}"
+        ) from error
+    except UnicodeError as error:
+        raise CsvImportError(f"CSV file is not valid UTF-8: {resolved_path}") from error
     except OSError as error:
         message = f"Could not read CSV file {resolved_path}: {error}"
         raise CsvImportError(message) from error

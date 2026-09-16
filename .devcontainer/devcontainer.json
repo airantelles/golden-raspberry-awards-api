@@ -6,6 +6,7 @@
     "target": "development"
   },
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "developer",
   "forwardPorts": [8000],
   "remoteEnv": {
     "CONTEXT7_API_KEY": "${localEnv:CONTEXT7_API_KEY}"
