@@ -8,6 +8,9 @@ ARG SQLITE_SHA3_256=454e45f61c6bd75b7420e7190732dea03ce6639c63ada47bbc592f67fc34
 FROM python:${PYTHON_VERSION}-slim-bookworm AS python-base
 
 
+FROM node:24.21.0-bookworm-slim AS node-development
+
+
 FROM python-base AS sqlite-builder
 
 ARG SQLITE_AUTOCONF
@@ -38,7 +41,7 @@ RUN curl --fail --location --silent --show-error \
 
 
 # This target contains the exact Python and SQLite runtime used by both the
-# production image and a future development image.
+# production and development images.
 FROM python-base AS base
 
 ARG SQLITE_VERSION
@@ -47,6 +50,19 @@ COPY --from=sqlite-builder /sqlite-runtime/libsqlite3.so.0 /usr/local/lib/
 
 RUN ldconfig \
     && python -c "import sqlite3; assert sqlite3.sqlite_version == '${SQLITE_VERSION}'"
+
+
+FROM base AS development
+
+COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /uvx /bin/
+COPY --from=node-development /usr/local/bin/node /usr/local/bin/
+COPY --from=node-development /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+RUN ln --symbolic ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln --symbolic ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && uv --version | grep --fixed-strings '0.12.15' \
+    && node --version | grep --fixed-strings 'v24.21.0' \
+    && npx --version
 
 
 FROM base AS dependencies

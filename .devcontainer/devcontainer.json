@@ -1,0 +1,26 @@
+{
+  "name": "golden-raspberry-awards-api",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "target": "development"
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [8000],
+  "remoteEnv": {
+    "CONTEXT7_API_KEY": "${localEnv:CONTEXT7_API_KEY}"
+  },
+  "postCreateCommand": "uv sync --frozen",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}
