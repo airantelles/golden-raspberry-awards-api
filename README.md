@@ -202,9 +202,10 @@ automaticamente quando o container é criado.
 
 Após reabrir o repositório, abra **Run and Debug** e selecione **API: Debug**
 para iniciar a API na porta 8000 com breakpoints habilitados em `src/app`. A
-configuração usa a `.venv` do projeto, carrega `docs/Movielist.csv` por padrão
-e preserva um `MOVIELIST_CSV_PATH` configurado anteriormente. Selecione
-**Tests: Debug** para executar os testes de integração com breakpoints.
+configuração usa o ambiente Python próprio do Dev Container, carrega
+`docs/Movielist.csv` por padrão e preserva um `MOVIELIST_CSV_PATH` configurado
+anteriormente. Selecione **Tests: Debug** para executar os testes de integração
+com breakpoints.
 
 ## Decisões técnicas
 

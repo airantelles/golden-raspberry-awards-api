@@ -9,16 +9,17 @@
   "remoteUser": "developer",
   "forwardPorts": [8000],
   "remoteEnv": {
-    "CONTEXT7_API_KEY": "${localEnv:CONTEXT7_API_KEY}"
+    "CONTEXT7_API_KEY": "${localEnv:CONTEXT7_API_KEY}",
+    "UV_PROJECT_ENVIRONMENT": "/home/developer/.venv"
   },
   "postCreateCommand": "uv sync --frozen",
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.defaultInterpreterPath": "/home/developer/.venv/bin/python",
         "python.testing.pytestEnabled": true,
         "python.analysis.extraPaths": [
-          "${containerWorkspaceFolder}/src"
+          "${workspaceFolder}/src"
         ]
       },
       "extensions": [
