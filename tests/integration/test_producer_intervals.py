@@ -1,5 +1,6 @@
 """End-to-end HTTP tests for the producer award-interval resource."""
 
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -235,6 +236,83 @@ def test_configured_csv_explicit_precedence_and_application_isolation(
             "min": [expected],
             "max": [expected],
         }
+
+
+def test_lifespan_logs_startup_import_statistics_and_shutdown(
+    caplog: pytest.LogCaptureFixture, write_csv: Callable[[str], Path]
+) -> None:
+    """Expose operational lifecycle events through the real application startup."""
+    csv_path = write_csv(
+        "year;title;studios;producers;winner\n"
+        "2000;First;Studio;Ada and Bea;yes\n"
+        "2001;Second;Studio;Ada;\n"
+    )
+    caplog.set_level(logging.INFO, logger="app")
+
+    with TestClient(create_app(csv_path)):
+        pass
+
+    records = caplog.records
+    assert any(
+        record.name == "app.main"
+        and record.levelno == logging.INFO
+        and record.getMessage() == "Application startup started"
+        for record in records
+    )
+    assert any(
+        record.name == "app.main"
+        and record.levelno == logging.INFO
+        and str(csv_path) in record.getMessage()
+        for record in records
+    )
+    assert any(
+        record.name == "app.importer"
+        and record.levelno == logging.INFO
+        and "CSV import started" in record.getMessage()
+        for record in records
+    )
+    assert any(
+        record.name == "app.importer"
+        and record.levelno == logging.INFO
+        and "CSV import completed" in record.getMessage()
+        and "movies_imported=2" in record.getMessage()
+        and "producers_loaded=2" in record.getMessage()
+        for record in records
+    )
+    assert any(
+        record.name == "app.main"
+        and record.levelno == logging.INFO
+        and record.getMessage() == "Application initialization completed"
+        for record in records
+    )
+    assert any(
+        record.name == "app.main"
+        and record.levelno == logging.INFO
+        and record.getMessage() == "Application shutdown completed"
+        for record in records
+    )
+
+
+def test_invalid_csv_logs_import_failure_during_startup(
+    caplog: pytest.LogCaptureFixture, tmp_path: Path
+) -> None:
+    """Keep CSV failures observable while preserving their original exception."""
+    csv_path = tmp_path / "invalid.csv"
+    csv_path.write_text("year;title;studios;producers\n", encoding="utf-8")
+    caplog.set_level(logging.ERROR, logger="app")
+
+    with pytest.raises(CsvImportError):
+        with TestClient(create_app(csv_path)):
+            pytest.fail("Invalid CSV must prevent startup")
+
+    assert any(
+        record.name == "app.main"
+        and record.levelno == logging.ERROR
+        and "CSV import failed during application startup" in record.getMessage()
+        and str(csv_path) in record.getMessage()
+        and record.exc_info is not None
+        for record in caplog.records
+    )
 
 
 @pytest.mark.parametrize(

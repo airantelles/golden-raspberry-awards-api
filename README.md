@@ -136,6 +136,22 @@ MOVIELIST_CSV_PATH=./path/to/another.csv uv run uvicorn --app-dir src app.main:a
 A suíte de testes também cria datasets CSV sintéticos. A implementação não
 depende dos valores específicos de `docs/Movielist.csv`.
 
+## Logs
+
+A aplicação registra em `INFO` o início e a conclusão da inicialização, o
+dataset selecionado, e o início e o resultado da importação (incluindo as
+quantidades de filmes e produtores carregados). Falhas de inicialização ou
+importação são registradas em `ERROR` com o traceback e continuam impedindo o
+startup. O encerramento também é registrado em `INFO`.
+
+`LOG_LEVEL` controla o nível dos logs da aplicação e aceita `DEBUG`, `INFO`,
+`WARNING`, `ERROR` e `CRITICAL`; o padrão é `INFO`. A configuração não altera
+os loggers nem os access logs gerenciados pelo Uvicorn.
+
+```bash
+LOG_LEVEL=DEBUG uv run uvicorn --app-dir src app.main:app --reload
+```
+
 ## Testes e verificações de qualidade
 
 O projeto contém somente testes de integração. Eles exercitam a aplicação por

@@ -1,6 +1,7 @@
 """CSV validation and persistence for the movie awards dataset."""
 
 import csv
+import logging
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from app.producers import parse_producers
 
 EXPECTED_COLUMNS = ("year", "title", "studios", "producers", "winner")
 
+logger = logging.getLogger(__name__)
+
 
 class CsvImportError(ValueError):
     """Raised when a dataset cannot be imported safely."""
@@ -19,6 +22,7 @@ class CsvImportError(ValueError):
 def import_movies(database: Database, csv_path: Path) -> None:
     """Validate and import one CSV dataset in a single database transaction."""
     resolved_path = csv_path.expanduser().resolve()
+    logger.info("CSV import started: dataset=%s", resolved_path)
     if not resolved_path.is_file():
         raise CsvImportError(f"CSV file does not exist: {resolved_path}")
 
@@ -29,6 +33,7 @@ def import_movies(database: Database, csv_path: Path) -> None:
 
             with database.session_factory.begin() as session:
                 producers_by_name: dict[str, Producer] = {}
+                movies_imported = 0
                 for row in reader:
                     _import_row(
                         session,
@@ -37,6 +42,13 @@ def import_movies(database: Database, csv_path: Path) -> None:
                         line_number=reader.line_num,
                         producers_by_name=producers_by_name,
                     )
+                    movies_imported += 1
+        logger.info(
+            "CSV import completed: dataset=%s movies_imported=%d producers_loaded=%d",
+            resolved_path,
+            movies_imported,
+            len(producers_by_name),
+        )
     except csv.Error as error:
         raise CsvImportError(
             f"Invalid CSV syntax in {resolved_path} near row {reader.line_num}: {error}"
