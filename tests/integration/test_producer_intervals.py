@@ -171,7 +171,7 @@ def test_normalized_producers_and_repeated_zero_intervals(
     """Preserve literal names, deduplicate producers and sort tied zero pairs."""
     producers = (
         "zeta, Alpha, alpha, R & B, Brian Robbinsand Sharla Sumpter Bridgett, "
-        "  Mary   Jane, and Alpha"
+        "  Mary   Jane, Straße, STRASSE, Émile, émile, and Alpha"
     )
     csv_path = write_csv(
         "\ufeffyear;title;studios;producers;winner\n"
@@ -193,8 +193,43 @@ def test_normalized_producers_and_repeated_zero_intervals(
             "Brian Robbinsand Sharla Sumpter Bridgett",
             "Mary Jane",
             "R & B",
+            "STRASSE",
+            "Straße",
             "zeta",
+            "Émile",
+            "émile",
         )
+    ]
+    with TestClient(create_app(csv_path)) as client:
+        response = client.get("/producers/intervals")
+
+    assert response.status_code == 200
+    assert response.json() == {"min": expected, "max": expected}
+
+
+def test_equal_nonzero_extremes_keep_every_consecutive_pair(
+    write_csv: Callable[[str], Path],
+) -> None:
+    """Equal bounds retain distinct year pairs in chronological order."""
+    csv_path = write_csv(
+        "year;title;studios;producers;winner\n"
+        "2006;Third;Studio;Ada;yes\n"
+        "2000;First;Studio;Ada;yes\n"
+        "2003;Second;Studio;Ada;yes\n"
+    )
+    expected = [
+        {
+            "producer": "Ada",
+            "interval": 3,
+            "previousWin": 2000,
+            "followingWin": 2003,
+        },
+        {
+            "producer": "Ada",
+            "interval": 3,
+            "previousWin": 2003,
+            "followingWin": 2006,
+        },
     ]
     with TestClient(create_app(csv_path)) as client:
         response = client.get("/producers/intervals")
