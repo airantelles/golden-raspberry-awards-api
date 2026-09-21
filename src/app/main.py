@@ -93,11 +93,15 @@ def _configure_logging() -> None:
             f"expected one of: {supported_levels}"
         )
 
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    logging.getLogger("app").setLevel(level)
+    application_logger = logging.getLogger("app")
+    application_logger.setLevel(level)
+    if not application_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        )
+        application_logger.addHandler(handler)
+    application_logger.propagate = False
 
 
 app = create_app()

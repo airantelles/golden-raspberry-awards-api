@@ -1,5 +1,6 @@
 """Queries for consecutive winning intervals of movie producers."""
 
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -7,6 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Movie, Producer, movie_producers
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,7 @@ def find_producer_interval_extremes(session: Session) -> ProducerIntervalExtreme
     defined for the dataset. Rows without a previous win are excluded after the
     window expression is evaluated.
     """
+    logger.debug("Producer interval extremes calculation started")
     previous_win = (
         func.lag(Movie.year)
         .over(
@@ -71,17 +75,27 @@ def find_producer_interval_extremes(session: Session) -> ProducerIntervalExtreme
         for row in session.execute(interval_rows)
     }
     if not intervals:
+        logger.debug(
+            "Producer interval extremes calculated: minimum_results=0 maximum_results=0"
+        )
         return ProducerIntervalExtremes(min=(), max=())
 
     minimum = min(interval.interval for interval in intervals)
     maximum = max(interval.interval for interval in intervals)
+    minimum_results = _sort_intervals(
+        interval for interval in intervals if interval.interval == minimum
+    )
+    maximum_results = _sort_intervals(
+        interval for interval in intervals if interval.interval == maximum
+    )
+    logger.debug(
+        "Producer interval extremes calculated: minimum_results=%d maximum_results=%d",
+        len(minimum_results),
+        len(maximum_results),
+    )
     return ProducerIntervalExtremes(
-        min=_sort_intervals(
-            interval for interval in intervals if interval.interval == minimum
-        ),
-        max=_sort_intervals(
-            interval for interval in intervals if interval.interval == maximum
-        ),
+        min=minimum_results,
+        max=maximum_results,
     )
 
 

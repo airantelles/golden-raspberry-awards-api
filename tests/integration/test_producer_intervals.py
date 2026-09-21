@@ -248,9 +248,14 @@ def test_lifespan_logs_startup_import_statistics_and_shutdown(
         "2001;Second;Studio;Ada;\n"
     )
     caplog.set_level(logging.INFO, logger="app")
+    application_logger = logging.getLogger("app")
+    application_logger.addHandler(caplog.handler)
 
-    with TestClient(create_app(csv_path)):
-        pass
+    try:
+        with TestClient(create_app(csv_path)):
+            pass
+    finally:
+        application_logger.removeHandler(caplog.handler)
 
     records = caplog.records
     assert any(
@@ -300,10 +305,15 @@ def test_invalid_csv_logs_import_failure_during_startup(
     csv_path = tmp_path / "invalid.csv"
     csv_path.write_text("year;title;studios;producers\n", encoding="utf-8")
     caplog.set_level(logging.ERROR, logger="app")
+    application_logger = logging.getLogger("app")
+    application_logger.addHandler(caplog.handler)
 
-    with pytest.raises(CsvImportError):
-        with TestClient(create_app(csv_path)):
-            pytest.fail("Invalid CSV must prevent startup")
+    try:
+        with pytest.raises(CsvImportError):
+            with TestClient(create_app(csv_path)):
+                pytest.fail("Invalid CSV must prevent startup")
+    finally:
+        application_logger.removeHandler(caplog.handler)
 
     assert any(
         record.name == "app.main"
@@ -311,6 +321,44 @@ def test_invalid_csv_logs_import_failure_during_startup(
         and "CSV import failed during application startup" in record.getMessage()
         and str(csv_path) in record.getMessage()
         and record.exc_info is not None
+        for record in caplog.records
+    )
+
+
+def test_intervals_endpoint_logs_debug_calculation_diagnostics(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    write_csv: Callable[[str], Path],
+) -> None:
+    """Expose aggregate interval-calculation diagnostics at DEBUG level."""
+    csv_path = write_csv(
+        "year;title;studios;producers;winner\n"
+        "2000;First;Studio;Ada;yes\n"
+        "2003;Second;Studio;Ada;yes\n"
+    )
+    monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    caplog.set_level(logging.DEBUG, logger="app")
+    application_logger = logging.getLogger("app")
+    application_logger.addHandler(caplog.handler)
+
+    try:
+        with TestClient(create_app(csv_path)) as client:
+            response = client.get("/producers/intervals")
+    finally:
+        application_logger.removeHandler(caplog.handler)
+
+    assert response.status_code == 200
+    assert any(
+        record.name == "app.intervals"
+        and record.levelno == logging.DEBUG
+        and record.getMessage() == "Producer interval extremes calculation started"
+        for record in caplog.records
+    )
+    assert any(
+        record.name == "app.intervals"
+        and record.levelno == logging.DEBUG
+        and record.getMessage()
+        == "Producer interval extremes calculated: minimum_results=1 maximum_results=1"
         for record in caplog.records
     )
 
